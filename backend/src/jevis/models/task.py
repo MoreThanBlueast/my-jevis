@@ -1,11 +1,15 @@
 import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from jevis.db.base import Base
+
+if TYPE_CHECKING:
+    from jevis.models.approval import Approval
 
 
 def utcnow() -> datetime:
@@ -33,6 +37,9 @@ class Task(Base):
     instruction: Mapped[str] = mapped_column(Text)
     task_type: Mapped[str] = mapped_column(String(40), default="SEND_EMAIL")
     target_app: Mapped[str] = mapped_column(String(160))
+    confirmation_policy: Mapped[str] = mapped_column(
+        String(40), default="BEFORE_EXTERNAL_ACTION"
+    )
     recipient: Mapped[str] = mapped_column(String(320))
     subject: Mapped[str] = mapped_column(String(240))
     body: Mapped[str] = mapped_column(Text)
@@ -47,6 +54,9 @@ class Task(Base):
     )
     events: Mapped[list["TaskEvent"]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="TaskEvent.sequence"
+    )
+    approvals: Mapped[list["Approval"]] = relationship(
+        cascade="all, delete-orphan", order_by="Approval.created_at"
     )
 
 

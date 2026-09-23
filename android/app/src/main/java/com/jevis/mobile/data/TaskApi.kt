@@ -12,6 +12,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 class TaskApi {
@@ -35,5 +36,10 @@ class TaskApi {
 
     suspend fun cancelTask(id: String): AgentTask =
         client.post("${BuildConfig.API_BASE_URL}api/v1/tasks/$id/cancel").body()
-}
 
+    suspend fun resolveApproval(taskId: String, approvalId: String, approve: Boolean): AgentTask =
+        client.post(
+            "${BuildConfig.API_BASE_URL}api/v1/tasks/$taskId/approvals/$approvalId/" +
+                if (approve) "approve" else "reject"
+        ).body()
+}

@@ -30,6 +30,7 @@ class ExecutorTask(BaseModel):
     task_id: uuid.UUID
     instruction: str
     target_app: str
+    confirmation_policy: str
     recipient: str
     subject: str
     body: str

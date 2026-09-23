@@ -30,7 +30,7 @@
 
 ### 2.2 产品定义
 
-AI 手机并行任务助手是一款 Android 任务控制应用。用户通过自然语言创建任务，后端 Agent 将任务拆解为结构化手机操作，并指挥同一部手机中的 AI 沙盒完成任务。任务执行过程中不在用户物理主屏注入触控，不切换用户当前前台应用，不抢占主屏输入焦点。
+AI 手机并行任务助手是一款通用 Android 任务控制应用。用户通过自然语言创建任务，后端 Agent 将任务拆解为结构化手机操作，并通过受控应用能力插件指挥同一部手机中的 AI 沙盒完成任务。QQ 邮箱发信是首个验证场景，而不是产品边界。任务执行过程中不在用户物理主屏注入触控，不切换用户当前前台应用，不抢占主屏输入焦点。
 
 ### 2.3 核心价值
 
@@ -940,4 +940,3 @@ Go 条件：虚拟显示稳定、输入可定向、主屏无焦点和触控干�
 - CrossProfileApps：https://developer.android.com/reference/android/content/pm/CrossProfileApps
 - DeepSeek Anthropic API：https://api-docs.deepseek.com/guides/anthropic_api/
 - Claude Agent SDK Python：https://github.com/anthropics/claude-agent-sdk-python
-

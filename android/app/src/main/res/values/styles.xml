@@ -1,4 +1,5 @@
 <resources>
+    <string name="accessibility_description">仅操作非零虚拟显示中的白名单应用，拒绝物理主屏。</string>
     <style name="Theme.OpenJevis" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#4F46E5</item>

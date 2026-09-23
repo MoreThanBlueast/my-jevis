@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="com.tencent.androidqqmail" />
+        <package android:name="com.android.calendar" />
+        <package android:name="com.tencent.mm" />
+        <package android:name="com.android.browser" />
+        <package android:name="com.miui.notes" />
+        <package android:name="com.autonavi.minimap" />
+        <package android:name="com.miui.gallery" />
+        <package android:name="com.android.contacts" />
+    </queries>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:allowBackup="false"
@@ -17,5 +29,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".executor.AgentAccessibilityService"
+            android:exported="false"
+            android:label="open-jevis 隔离执行器"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+        <service
+            android:name=".executor.ExecutorForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

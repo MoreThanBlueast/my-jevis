@@ -13,7 +13,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,6 +25,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jevis.mobile.ui.TaskViewModel
+import com.jevis.mobile.ui.JevisBackground
+import com.jevis.mobile.ui.JevisBlue
 import com.jevis.mobile.ui.screens.CreateTaskScreen
 import com.jevis.mobile.ui.screens.SettingsScreen
 import com.jevis.mobile.ui.screens.TaskDetailScreen
@@ -31,14 +35,16 @@ import com.jevis.mobile.ui.screens.TaskListScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val startRoute = intent.getStringExtra("start_route") ?: "tasks"
         setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = lightColorScheme(primary = JevisBlue, background = JevisBackground, surface = JevisBackground)) {
+                Surface(color = JevisBackground) {
                 val nav = rememberNavController()
                 val vm: TaskViewModel = viewModel()
                 val state by vm.state.collectAsStateWithLifecycle()
                 val entry by nav.currentBackStackEntryAsState()
                 val current = entry?.destination?.route.orEmpty()
-                Scaffold(
+                Scaffold(containerColor = JevisBackground,
                     bottomBar = {
                         if (!current.startsWith("detail")) {
                             NavigationBar {
@@ -49,18 +55,29 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { padding ->
-                    NavHost(nav, startDestination = "tasks", modifier = Modifier.padding(padding)) {
-                        composable("tasks") { TaskListScreen(state, vm::refresh) { nav.navigate("detail/$it") } }
-                        composable("create") { CreateTaskScreen(state.loading, state.error) { to, subject, body -> vm.create(to, subject, body) { nav.navigate("detail/$it") } } }
+                    NavHost(nav, startDestination = startRoute, modifier = Modifier.padding(padding)) {
+                        composable("tasks") {
+                            TaskListScreen(
+                                state = state,
+                                refresh = vm::refresh,
+                                create = { nav.navigate("create") },
+                                open = { nav.navigate("detail/$it") },
+                            )
+                        }
+                        composable("create") {
+                            CreateTaskScreen(state.loading, state.error) { instruction, app, confirm ->
+                                vm.create(instruction, app, confirm) { nav.navigate("detail/$it") }
+                            }
+                        }
                         composable("settings") { SettingsScreen() }
                         composable("detail/{id}") { backStack ->
                             val id = backStack.arguments?.getString("id").orEmpty()
-                            TaskDetailScreen(id, state.selected, vm::load, vm::cancel) { nav.popBackStack() }
+                            TaskDetailScreen(id, state.selected, vm::load, vm::cancel, vm::resolveApproval) { nav.popBackStack() }
                         }
                     }
+                }
                 }
             }
         }
     }
 }
-

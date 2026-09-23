@@ -51,3 +51,19 @@ async def test_reject_invalid_email(client):
         },
     )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_generic_natural_language_task(client):
+    response = await client.post(
+        "/api/v1/tasks",
+        json={
+            "instruction": "查询本周日程并整理成三条摘要",
+            "confirmation_policy": "BEFORE_EXTERNAL_ACTION",
+            "idempotency_key": f"test-{uuid.uuid4()}",
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["task_type"] == "GENERAL"
+    assert response.json()["target_app"] == "com.android.calendar"
+    assert response.json()["confirmation_policy"] == "BEFORE_EXTERNAL_ACTION"

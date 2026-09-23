@@ -37,14 +37,22 @@ class TaskViewModel(private val repository: TaskRepository = TaskRepository()) :
             .onFailure { _state.value = _state.value.copy(error = it.message) }
     }
 
-    fun create(recipient: String, subject: String, body: String, onCreated: (String) -> Unit) =
+    fun create(
+        instruction: String,
+        targetApp: String?,
+        confirmBeforeExternalAction: Boolean,
+        onCreated: (String) -> Unit,
+    ) =
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null)
             val request = CreateTaskRequest(
-                instruction = "使用 QQ 邮箱给 $recipient 发送一封邮件，主题：$subject",
-                recipient = recipient.trim(),
-                subject = subject.trim(),
-                body = body.trim(),
+                instruction = instruction.trim(),
+                targetApp = targetApp?.takeUnless { it == "AUTO" },
+                confirmationPolicy = if (confirmBeforeExternalAction) {
+                    "BEFORE_EXTERNAL_ACTION"
+                } else {
+                    "PREAUTHORIZED"
+                },
                 idempotencyKey = UUID.randomUUID().toString(),
             )
             runCatching { repository.create(request) }
@@ -61,5 +69,11 @@ class TaskViewModel(private val repository: TaskRepository = TaskRepository()) :
             .onSuccess { _state.value = _state.value.copy(selected = it); refresh() }
             .onFailure { _state.value = _state.value.copy(error = it.message) }
     }
-}
 
+    fun resolveApproval(taskId: String, approvalId: String, approve: Boolean) =
+        viewModelScope.launch {
+            runCatching { repository.resolveApproval(taskId, approvalId, approve) }
+                .onSuccess { _state.value = _state.value.copy(selected = it); refresh() }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+}

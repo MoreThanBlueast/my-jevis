@@ -1,6 +1,7 @@
 import asyncio
 import json
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import (
     APIRouter,
@@ -11,11 +12,15 @@ from fastapi import (
     status,
 )
 from redis.asyncio import Redis
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jevis.api.deps import get_redis
 from jevis.db.session import get_session
-from jevis.models.task import TaskStatus
+from jevis.models.approval import Approval, ApprovalStatus
+from jevis.models.command import DeviceCommand
+from jevis.models.task import Task, TaskEvent, TaskStatus
+from jevis.schemas.command import PlannedAction
 from jevis.schemas.task import TaskCreate, TaskRead
 from jevis.services.events import task_channel
 from jevis.services.tasks import TaskService
@@ -65,6 +70,89 @@ async def cancel_task(
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
     return TaskRead.model_validate(await service.cancel(task))
+
+
+@router.post("/{task_id}/approvals/{approval_id}/approve", response_model=TaskRead)
+async def approve_action(
+    task_id: uuid.UUID,
+    approval_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    redis: Redis | None = Depends(get_redis),
+) -> TaskRead:
+    approval = await session.get(Approval, approval_id)
+    task = await session.get(Task, task_id)
+    if task is None or approval is None or approval.task_id != task_id:
+        raise HTTPException(status_code=404, detail="确认请求不存在")
+    if approval.status != ApprovalStatus.PENDING or task.status != TaskStatus.WAITING_CONFIRMATION:
+        raise HTTPException(status_code=409, detail="确认请求已处理或任务状态不匹配")
+    action = PlannedAction.model_validate(approval.action_payload)
+    if action.action_type == "REQUEST_CONFIRMATION":
+        raise HTTPException(status_code=422, detail="确认动作不能嵌套确认请求")
+    next_command_sequence = await session.scalar(
+        select(func.coalesce(func.max(DeviceCommand.sequence), 0)).where(
+            DeviceCommand.task_id == task_id
+        )
+    )
+    next_event_sequence = await session.scalar(
+        select(func.coalesce(func.max(TaskEvent.sequence), 0)).where(TaskEvent.task_id == task_id)
+    )
+    session.add(
+        DeviceCommand(
+            task_id=task_id,
+            sequence=int(next_command_sequence or 0) + 1,
+            action_type=action.action_type,
+            arguments=action.arguments,
+            summary=action.summary,
+        )
+    )
+    session.add(
+        TaskEvent(
+            task_id=task_id,
+            sequence=int(next_event_sequence or 0) + 1,
+            event_type="APPROVAL_GRANTED",
+            summary="用户已批准外部操作",
+            payload={"approvalId": str(approval.id)},
+        )
+    )
+    approval.status = ApprovalStatus.APPROVED
+    approval.resolved_at = datetime.now(UTC)
+    task.status = TaskStatus.RUNNING
+    await session.commit()
+    resolved = await TaskService(session, redis).get(task_id)
+    return TaskRead.model_validate(resolved)
+
+
+@router.post("/{task_id}/approvals/{approval_id}/reject", response_model=TaskRead)
+async def reject_action(
+    task_id: uuid.UUID,
+    approval_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    redis: Redis | None = Depends(get_redis),
+) -> TaskRead:
+    approval = await session.get(Approval, approval_id)
+    task = await session.get(Task, task_id)
+    if task is None or approval is None or approval.task_id != task_id:
+        raise HTTPException(status_code=404, detail="确认请求不存在")
+    if approval.status != ApprovalStatus.PENDING:
+        raise HTTPException(status_code=409, detail="确认请求已处理")
+    next_sequence = await session.scalar(
+        select(func.coalesce(func.max(TaskEvent.sequence), 0)).where(TaskEvent.task_id == task_id)
+    )
+    approval.status = ApprovalStatus.REJECTED
+    approval.resolved_at = datetime.now(UTC)
+    task.status = TaskStatus.CANCELED
+    session.add(
+        TaskEvent(
+            task_id=task_id,
+            sequence=int(next_sequence or 0) + 1,
+            event_type="APPROVAL_REJECTED",
+            summary="用户拒绝了外部操作，任务已停止",
+            payload={"approvalId": str(approval.id)},
+        )
+    )
+    await session.commit()
+    resolved = await TaskService(session, redis).get(task_id)
+    return TaskRead.model_validate(resolved)
 
 
 @router.websocket("/{task_id}/events")
