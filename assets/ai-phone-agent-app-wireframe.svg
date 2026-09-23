@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="940" viewBox="0 0 1500 940">
+  <defs>
+    <style>
+      .bg { fill: #f5f7fb; }
+      .phone { fill: #ffffff; stroke: #182230; stroke-width: 5; }
+      .screen { fill: #f8fafc; stroke: #d7dee8; stroke-width: 2; }
+      .bar { fill: #1d4ed8; }
+      .nav { fill: #ffffff; stroke: #d7dee8; stroke-width: 2; }
+      .card { fill: #ffffff; stroke: #d7dee8; stroke-width: 2; }
+      .primary { fill: #2563eb; }
+      .success { fill: #16a34a; }
+      .warning { fill: #f59e0b; }
+      .danger { fill: #dc2626; }
+      .muted { fill: #64748b; }
+      .line { stroke: #cbd5e1; stroke-width: 2; }
+      .title { font: 700 27px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #ffffff; }
+      .h1 { font: 700 24px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #172033; }
+      .h2 { font: 600 19px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #172033; }
+      .body { font: 16px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #334155; }
+      .small { font: 14px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #64748b; }
+      .button { font: 600 17px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #ffffff; }
+      .caption { font: 700 23px 'PingFang SC','Hiragino Sans GB','Arial Unicode MS',sans-serif; fill: #172033; }
+    </style>
+  </defs>
+  <rect class="bg" width="1500" height="940" rx="24"/>
+
+  <!-- Phone 1: task list -->
+  <g transform="translate(55 55)">
+    <text class="caption" x="190" y="0" text-anchor="middle">任务列表</text>
+    <rect class="phone" x="0" y="24" width="390" height="790" rx="44"/>
+    <rect class="screen" x="18" y="55" width="354" height="724" rx="24"/>
+    <rect class="bar" x="18" y="55" width="354" height="92" rx="24"/>
+    <rect class="bar" x="18" y="115" width="354" height="32"/>
+    <text class="title" x="42" y="112">AI 任务</text>
+    <circle cx="329" cy="101" r="23" fill="#ffffff" opacity="0.2"/>
+    <text class="button" x="329" y="108" text-anchor="middle">＋</text>
+
+    <rect class="card" x="34" y="169" width="322" height="138" rx="16"/>
+    <circle class="primary" cx="61" cy="200" r="10"/>
+    <text class="h2" x="82" y="207">发送问候邮件</text>
+    <text class="body" x="50" y="239">正在填写邮件正文</text>
+    <rect x="50" y="256" width="274" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="50" y="256" width="176" height="8" rx="4" fill="#2563eb"/>
+    <text class="small" x="50" y="290">执行中 · 00:27</text>
+    <text class="small" x="325" y="290" text-anchor="end">Gmail</text>
+
+    <rect class="card" x="34" y="323" width="322" height="112" rx="16"/>
+    <circle class="success" cx="61" cy="354" r="10"/>
+    <text class="h2" x="82" y="361">查询本周日程</text>
+    <text class="body" x="50" y="394">已完成，共找到 6 项</text>
+    <text class="small" x="50" y="420">今天 09:45</text>
+
+    <rect class="card" x="34" y="451" width="322" height="112" rx="16"/>
+    <circle class="danger" cx="61" cy="482" r="10"/>
+    <text class="h2" x="82" y="489">预订会议室</text>
+    <text class="body" x="50" y="522">失败：目标应用未登录</text>
+    <text class="small" x="50" y="548">昨天 16:20</text>
+
+    <rect class="nav" x="18" y="711" width="354" height="68" rx="0"/>
+    <text class="small" x="82" y="750" text-anchor="middle">任务</text>
+    <text class="small" x="195" y="750" text-anchor="middle">创建</text>
+    <text class="small" x="307" y="750" text-anchor="middle">设置</text>
+  </g>
+
+  <!-- Phone 2: create task -->
+  <g transform="translate(555 55)">
+    <text class="caption" x="190" y="0" text-anchor="middle">创建任务</text>
+    <rect class="phone" x="0" y="24" width="390" height="790" rx="44"/>
+    <rect class="screen" x="18" y="55" width="354" height="724" rx="24"/>
+    <rect class="bar" x="18" y="55" width="354" height="92" rx="24"/>
+    <rect class="bar" x="18" y="115" width="354" height="32"/>
+    <text class="title" x="42" y="112">新建任务</text>
+
+    <text class="h2" x="36" y="187">告诉 AI 要完成什么</text>
+    <rect class="card" x="34" y="207" width="322" height="162" rx="16"/>
+    <text class="body" x="51" y="242">使用 Gmail 给 test@example.com</text>
+    <text class="body" x="51" y="272">发送一封问候邮件，标题是“你好”，</text>
+    <text class="body" x="51" y="302">正文是“祝你今天愉快”。</text>
+    <line class="line" x1="51" y1="337" x2="339" y2="337"/>
+    <text class="small" x="51" y="357">92 / 1000</text>
+
+    <text class="h2" x="36" y="414">执行策略</text>
+    <rect class="card" x="34" y="433" width="322" height="126" rx="16"/>
+    <text class="body" x="51" y="468">运行空间</text>
+    <text class="small" x="337" y="468" text-anchor="end">AI 工作资料</text>
+    <line class="line" x1="51" y1="486" x2="339" y2="486"/>
+    <text class="body" x="51" y="521">发送前确认</text>
+    <rect x="296" y="501" width="42" height="24" rx="12" fill="#2563eb"/>
+    <circle cx="326" cy="513" r="9" fill="#ffffff"/>
+
+    <rect class="primary" x="34" y="600" width="322" height="58" rx="16"/>
+    <text class="button" x="195" y="637" text-anchor="middle">创建并执行</text>
+    <text class="small" x="195" y="689" text-anchor="middle">任务将在独立虚拟显示中运行</text>
+  </g>
+
+  <!-- Phone 3: task detail -->
+  <g transform="translate(1055 55)">
+    <text class="caption" x="190" y="0" text-anchor="middle">任务详情</text>
+    <rect class="phone" x="0" y="24" width="390" height="790" rx="44"/>
+    <rect class="screen" x="18" y="55" width="354" height="724" rx="24"/>
+    <rect class="bar" x="18" y="55" width="354" height="92" rx="24"/>
+    <rect class="bar" x="18" y="115" width="354" height="32"/>
+    <text class="title" x="42" y="112">发送问候邮件</text>
+
+    <rect class="card" x="34" y="166" width="322" height="104" rx="16"/>
+    <circle class="primary" cx="62" cy="199" r="11"/>
+    <text class="h2" x="84" y="206">执行中</text>
+    <text class="body" x="50" y="239">当前步骤：正在验证邮件内容</text>
+    <text class="small" x="337" y="258" text-anchor="end">Display 4 · Gmail</text>
+
+    <text class="h2" x="36" y="314">执行时间线</text>
+    <line x1="57" y1="342" x2="57" y2="620" stroke="#cbd5e1" stroke-width="3"/>
+    <circle class="success" cx="57" cy="356" r="9"/>
+    <text class="body" x="82" y="361">已创建虚拟显示</text>
+    <text class="small" x="82" y="383">10:32:04</text>
+
+    <circle class="success" cx="57" cy="420" r="9"/>
+    <text class="body" x="82" y="425">已启动工作资料 Gmail</text>
+    <text class="small" x="82" y="447">10:32:06</text>
+
+    <circle class="success" cx="57" cy="484" r="9"/>
+    <text class="body" x="82" y="489">已填写收件人和标题</text>
+    <text class="small" x="82" y="511">10:32:12</text>
+
+    <circle class="primary" cx="57" cy="548" r="9"/>
+    <text class="body" x="82" y="553">正在验证正文</text>
+    <text class="small" x="82" y="575">10:32:16</text>
+
+    <circle cx="57" cy="612" r="9" fill="#e2e8f0"/>
+    <text class="body" x="82" y="617" fill="#94a3b8">发送并验证</text>
+
+    <rect x="34" y="663" width="154" height="54" rx="15" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+    <text x="111" y="697" text-anchor="middle" class="h2" fill="#dc2626">停止任务</text>
+    <rect class="primary" x="202" y="663" width="154" height="54" rx="15"/>
+    <text class="button" x="279" y="697" text-anchor="middle">查看实时画面</text>
+  </g>
+
+  <text class="small" x="750" y="905" text-anchor="middle">低保真页面示意  用于确认信息架构和核心交互  非最终视觉设计</text>
+</svg>
