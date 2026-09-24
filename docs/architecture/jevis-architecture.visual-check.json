@@ -6,7 +6,7 @@
   "status": "pass",
   "visualReview": "pending",
   "artifact": {
-    "path": "/Users/shguxi/CodeHome/my-jevis/docs/jevis-architecture.html",
+    "path": "docs/architecture/jevis-architecture.html",
     "sha256": "b00dd87b5e7ba2c9e99bd02fb60a76869d8697f654d94ee110904ea4de5274cf",
     "bytes": 816211
   },
