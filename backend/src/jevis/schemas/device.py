@@ -37,6 +37,8 @@ class ExecutorTask(BaseModel):
     idempotency_key: str
     required_display_id: int
     required_profile_user_id: int
+    next_event_sequence: int
+    resumed: bool = False
 
 
 class ExecutorEvent(BaseModel):

@@ -15,6 +15,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "com.jevis.mobile.MailUiTestRunner"
         val apiBaseUrl = providers.gradleProperty("OPENJEVIS_API_BASE_URL")
             .getOrElse("http://127.0.0.1:8000/")
         val deviceToken = providers.gradleProperty("OPENJEVIS_DEVICE_TOKEN")
@@ -38,6 +39,9 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")

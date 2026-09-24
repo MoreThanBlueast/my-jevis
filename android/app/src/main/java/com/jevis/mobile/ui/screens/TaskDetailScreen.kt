@@ -42,10 +42,13 @@ fun TaskDetailScreen(
     task: AgentTask?,
     load: (String) -> Unit,
     cancel: (String) -> Unit,
+    resume: (String) -> Unit,
     resolveApproval: (String, String, Boolean) -> Unit,
     back: () -> Unit,
 ) {
-    LaunchedEffect(id) { load(id) }
+    LaunchedEffect(id) {
+        while (true) { load(id); kotlinx.coroutines.delay(2_000) }
+    }
     if (task == null || task.id != id) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("正在加载…") }
         return
@@ -94,6 +97,11 @@ fun TaskDetailScreen(
             }
         }
         Text("执行时间线", style = MaterialTheme.typography.titleLarge)
+        if (task.status == "NEEDS_REVIEW") {
+            Text("继续前请核对已完成的外部操作；系统将保留历史并重新观察，不重放旧动作。",
+                style = MaterialTheme.typography.bodySmall)
+            Button(onClick = { resume(id) }) { Text("重新观察并继续") }
+        }
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             itemsIndexed(task.events, key = { _, event -> event.id }) { index, event ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {

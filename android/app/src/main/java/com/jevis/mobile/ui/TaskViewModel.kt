@@ -70,6 +70,12 @@ class TaskViewModel(private val repository: TaskRepository = TaskRepository()) :
             .onFailure { _state.value = _state.value.copy(error = it.message) }
     }
 
+    fun resume(id: String) = viewModelScope.launch {
+        runCatching { repository.resume(id) }
+            .onSuccess { _state.value = _state.value.copy(selected = it); refresh() }
+            .onFailure { _state.value = _state.value.copy(error = it.message) }
+    }
+
     fun resolveApproval(taskId: String, approvalId: String, approve: Boolean) =
         viewModelScope.launch {
             runCatching { repository.resolveApproval(taskId, approvalId, approve) }

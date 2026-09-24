@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     claude_agent_enabled: bool = False
     cors_origins: str = "http://localhost:3000"
     max_task_steps: int = Field(default=50, ge=1, le=200)
+    # Each planning round may silently spend turns on session setup and title
+    # generation, so the budget is deliberately larger than one exchange.
+    planner_max_turns: int = Field(default=8, ge=1, le=20)
+    planner_attempts: int = Field(default=3, ge=1, le=5)
+    adb_launch_enabled: bool = False
+    adb_device_serial: str = ""
+    adb_device_id: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.jevis.mobile.ui.JevisBlue
 import com.jevis.mobile.ui.JevisMuted
@@ -69,7 +70,7 @@ fun CreateTaskScreen(
         OutlinedTextField(
             value = instruction,
             onValueChange = { if (it.length <= 1000) instruction = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("task_instruction"),
             minLines = 7,
             maxLines = 12,
             placeholder = { Text("例如：使用 QQ 邮箱发送问候邮件，或查询本周日程并整理摘要") },
@@ -122,6 +123,7 @@ fun CreateTaskScreen(
                         Text("发送、发布、提交等动作前询问", style = MaterialTheme.typography.bodySmall, color = JevisMuted)
                     }
                     Switch(
+                        modifier = Modifier.testTag("external_confirmation"),
                         checked = confirm,
                         onCheckedChange = { confirm = it },
                         colors = SwitchDefaults.colors(checkedTrackColor = JevisBlue),

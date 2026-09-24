@@ -1,6 +1,5 @@
 package com.jevis.mobile.executor
 
-import android.app.ActivityOptions
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -10,6 +9,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.Process
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +45,7 @@ class ExecutorForegroundService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val api = DeviceGatewayApi()
     private var worker: Job? = null
+    private val taskStates = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     override fun onCreate() {
         super.onCreate()
@@ -59,6 +60,38 @@ class ExecutorForegroundService : Service() {
                 .build(),
         )
         worker = scope.launch { runLoop() }
+        scope.launch { monitorResults() }
+    }
+
+    private suspend fun monitorResults() {
+        val deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+        val preferences = getSharedPreferences("task_result_notifications", MODE_PRIVATE)
+        val labels = mapOf(
+            "SUCCEEDED" to "任务已完成", "FAILED" to "任务执行失败",
+            "NEEDS_REVIEW" to "任务已暂停，需检查", "CANCELED" to "任务已取消",
+            "EXPIRED" to "任务已过期", "WAITING_CONFIRMATION" to "任务等待你的确认",
+        )
+        while (scope.isActive) {
+            try {
+                val updates = api.statuses(deviceId)
+                taskStates.keys.retainAll(updates.map { it.taskId }.toSet())
+                for (update in updates) {
+                    taskStates[update.taskId] = update.status
+                    val label = labels[update.status] ?: continue
+                    val key = "${update.taskId}:${update.status}"
+                    if (preferences.getBoolean(key, false)) continue
+                    val service = AgentAccessibilityService.instance ?: continue
+                    if (service.showTaskResult(label, update.title)) {
+                        preferences.edit().putBoolean(key, true).apply()
+                    }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.w("OpenJevisExecutor", "任务结果同步失败，将自动重试")
+            }
+            delay(2_000)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
@@ -95,7 +128,8 @@ class ExecutorForegroundService : Service() {
                 }
             } catch (error: CancellationException) {
                 throw error
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                Log.e("OpenJevisExecutor", "执行循环失败，将在下一轮恢复", error)
                 // The next iteration re-registers. Side effects are never retried here.
             }
             delay(2_000)
@@ -111,7 +145,7 @@ class ExecutorForegroundService : Service() {
         require(task.requiredDisplayId > 0)
         require(task.requiredProfileUserId == userId)
         require(task.targetApp in ALLOWED_PACKAGES)
-        var sequence = 3
+        var sequence = task.nextEventSequence
         suspend fun event(
             type: String,
             summary: String,
@@ -134,9 +168,29 @@ class ExecutorForegroundService : Service() {
         }
 
         event("EXECUTOR_STARTED", "隔离执行器开始处理 ${task.targetApp} 任务", "RUNNING")
-        launchOnDisplay(task.targetApp, task.requiredDisplayId)
-        delay(2_500)
-        val snapshot = accessibility.snapshot(task.requiredDisplayId)
+        val snapshot = try {
+            // The bridge reuses an existing isolated foreground app without relaunching,
+            // and also checks whether the owner is currently using it on the main screen.
+            // Never fall back to an ordinary launcher intent on HyperOS.
+            api.prepareDisplay(deviceId, task.taskId)
+            var observed = accessibility.snapshot(task.requiredDisplayId, task.targetApp)
+            var attempts = 0
+            while (observed.packageName != task.targetApp && attempts++ < 12) {
+                delay(500)
+                observed = accessibility.snapshot(task.requiredDisplayId, task.targetApp)
+            }
+            check(observed.packageName == task.targetApp) {
+                "目标应用未在隔离显示前台：${observed.packageName}"
+            }
+            observed
+        } catch (error: Exception) {
+            event(
+                "EXECUTOR_FAILED",
+                "无法在隔离显示启动目标应用：${error.message}",
+                "FAILED",
+            )
+            return
+        }
         event(
             "OBSERVATION",
             "已观察 ${snapshot.packageName}，发现 ${snapshot.nodes.size} 个可访问节点",
@@ -144,7 +198,9 @@ class ExecutorForegroundService : Service() {
                 put("observation", Json.encodeToJsonElement(UiSnapshot.serializer(), snapshot))
             },
         )
-        repeat(50) {
+        repeat(900) {
+            val state = taskStates[task.taskId]
+            if (state in setOf("SUCCEEDED", "FAILED", "NEEDS_REVIEW", "CANCELED", "EXPIRED")) return
             val command = api.nextAction(deviceId, task.taskId)
             if (command == null) {
                 delay(600)
@@ -152,7 +208,7 @@ class ExecutorForegroundService : Service() {
             }
             val success = executeAction(task, command, accessibility)
             delay(450)
-            val after = accessibility.snapshot(task.requiredDisplayId)
+            val after = accessibility.snapshot(task.requiredDisplayId, task.targetApp)
             api.completeAction(
                 deviceId,
                 command.id,
@@ -164,17 +220,8 @@ class ExecutorForegroundService : Service() {
                     observation = after,
                 ),
             )
-            if (command.actionType == "FINISH") return
+            if (!success || command.actionType == "FINISH") return
         }
-    }
-
-    private fun launchOnDisplay(packageName: String, displayId: Int) {
-        require(displayId > 0)
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
-            ?: error("目标应用未安装：$packageName")
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val options = ActivityOptions.makeBasic().apply { launchDisplayId = displayId }
-        startActivity(intent, options.toBundle())
     }
 
     private suspend fun executeAction(
@@ -184,7 +231,12 @@ class ExecutorForegroundService : Service() {
     ): Boolean {
         val displayId = task.requiredDisplayId
         require(displayId > 0)
-        val before = accessibility.snapshot(displayId)
+        var before = accessibility.snapshot(displayId, task.targetApp)
+        var snapshotAttempts = 0
+        while (before.packageName != task.targetApp && snapshotAttempts++ < 10) {
+            delay(150)
+            before = accessibility.snapshot(displayId, task.targetApp)
+        }
         if (before.packageName != task.targetApp) return false
         fun string(name: String): String? =
             (command.arguments[name] as? JsonPrimitive)?.content
@@ -192,15 +244,35 @@ class ExecutorForegroundService : Service() {
         return when (command.actionType) {
             "CLICK" -> {
                 val query = string("query") ?: return false
-                if (query.contains("发送")) {
+                if (query.contains("发送") || command.summary.contains("发送")) {
+                    // Never send twice for the same logical task. App-side evidence of a
+                    // sent mail is unreliable: the sent folder may lag behind, so a planner
+                    // that re-checks later can wrongly conclude the first click failed.
+                    try {
+                        val alreadySent = getSharedPreferences("isolated_send_guard", MODE_PRIVATE)
+                            .getBoolean(sendGuardKey(task), false)
+                        if (alreadySent) {
+                            Log.w("OpenJevisExecutor", "同一任务已发生过发送动作，拒绝第二次发送")
+                            return false
+                        }
+                    } catch (error: Exception) {
+                        Log.w("OpenJevisExecutor", "无法读取发送去重标记，按未发送处理")
+                    }
                     val visible = before.nodes.joinToString("\n") {
                         "${it.text} ${it.description} ${it.viewId}"
                     }
                     if (listOf(task.recipient, task.subject, task.body).any { it !in visible }) {
                         return false
                     }
+                    val clicked = accessibility.click(displayId, query)
+                    if (clicked) {
+                        getSharedPreferences("isolated_send_guard", MODE_PRIVATE)
+                            .edit().putBoolean(sendGuardKey(task), true).apply()
+                    }
+                    clicked
+                } else {
+                    accessibility.click(displayId, query)
                 }
-                accessibility.click(displayId, query)
             }
             "SET_TEXT" -> {
                 val query = string("query")
@@ -233,8 +305,14 @@ class ExecutorForegroundService : Service() {
 
     private fun isolatedDisplayId(): Int? {
         val manager = getSystemService(DisplayManager::class.java)
-        return manager.displays.map { it.displayId }.firstOrNull { it > 0 }
+        // `singleOrNull` guards against ambiguous ownership, but it also returns null when a
+        // second scrcpy display lingers. The caller treats null as "not ready" and waits,
+        // which is safe; it is never a reason to fall back to Display 0.
+        return manager.displays.filter { it.displayId > 0 && it.name == "scrcpy" }
+            .singleOrNull()?.displayId
     }
+
+    private fun sendGuardKey(task: ExecutorTask): String = "sent:${task.idempotencyKey}"
 
     private fun createNotificationChannel() {
         val manager = getSystemService(NotificationManager::class.java)

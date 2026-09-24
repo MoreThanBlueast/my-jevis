@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "open-jevis 同机并行手机 Agent 架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1300,
+      730
+    ],
+    "views": [
+      {
+        "id": "dispatch",
+        "label": "任务派发",
+        "focus": [
+          "app_ui",
+          "api",
+          "pg",
+          "redis"
+        ],
+        "note": "一条自然语言任务如何落库并进入队列。"
+      },
+      {
+        "id": "plan-loop",
+        "label": "观察与规划",
+        "focus": [
+          "executor",
+          "api",
+          "redis",
+          "planner",
+          "llm",
+          "pg"
+        ],
+        "note": "屏幕观察进入 agent_queue，模型逐步产出动作。"
+      },
+      {
+        "id": "isolated-exec",
+        "label": "隔离执行",
+        "focus": [
+          "adb",
+          "vdisplay",
+          "a11y",
+          "target",
+          "executor"
+        ],
+        "note": "动作只落在隔离虚拟显示里的目标 App。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "app_ui",
+      "type": "frontend",
+      "label": "任务发起端",
+      "sublabel": "Jevis App / REST API",
+      "pos": [
+        80,
+        80
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI 编排服务",
+      "sublabel": "127.0.0.1:18001",
+      "pos": [
+        80,
+        240
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "adb",
+      "type": "cloud",
+      "label": "ADB 隔离启动桥",
+      "sublabel": "display_launcher",
+      "tag": "macOS 侧",
+      "pos": [
+        400,
+        80
+      ],
+      "size": [
+        200,
+        64
+      ]
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": ":55432 · tasks / commands",
+      "pos": [
+        80,
+        420
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "redis",
+      "type": "messagebus",
+      "label": "Redis 队列",
+      "sublabel": ":56379 · task / agent / dead",
+      "pos": [
+        400,
+        420
+      ],
+      "size": [
+        200,
+        64
+      ]
+    },
+    {
+      "id": "planner",
+      "type": "backend",
+      "label": "规划 Worker",
+      "sublabel": "agent_worker 独立进程",
+      "pos": [
+        80,
+        600
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "external",
+      "label": "DeepSeek 规划模型",
+      "sublabel": "Claude Agent SDK",
+      "tag": "外部模型",
+      "pos": [
+        700,
+        600
+      ],
+      "size": [
+        200,
+        64
+      ]
+    },
+    {
+      "id": "executor",
+      "type": "backend",
+      "label": "执行器前台服务",
+      "sublabel": "ExecutorForegroundService",
+      "pos": [
+        700,
+        240
+      ],
+      "size": [
+        220,
+        64
+      ]
+    },
+    {
+      "id": "a11y",
+      "type": "security",
+      "label": "无障碍执行层",
+      "sublabel": "AgentAccessibilityService",
+      "pos": [
+        700,
+        420
+      ],
+      "size": [
+        220,
+        64
+      ]
+    },
+    {
+      "id": "vdisplay",
+      "type": "cloud",
+      "label": "隔离虚拟显示",
+      "sublabel": "scrcpy Display N",
+      "pos": [
+        1000,
+        240
+      ],
+      "size": [
+        210,
+        64
+      ]
+    },
+    {
+      "id": "target",
+      "type": "external",
+      "label": "白名单目标 App",
+      "sublabel": "QQ 邮箱 / 微信 / 日历",
+      "pos": [
+        1000,
+        420
+      ],
+      "size": [
+        210,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "编排侧 · macOS 本机",
+      "wraps": [
+        "api",
+        "pg",
+        "redis",
+        "planner"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "region",
+      "label": "Android 真机 · 隔离执行链路",
+      "wraps": [
+        "executor",
+        "a11y",
+        "vdisplay",
+        "target"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "security-group",
+      "label": "隔离虚拟显示 · 永不回退 Display 0",
+      "wraps": [
+        "vdisplay",
+        "target"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "from": "app_ui",
+      "to": "api",
+      "label": "POST /api/v1/tasks",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        140,
+        196
+      ]
+    },
+    {
+      "from": "api",
+      "to": "pg",
+      "label": "写入 tasks / events",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        116,
+        352
+      ]
+    },
+    {
+      "from": "api",
+      "to": "redis",
+      "label": "rpush jevis:task_queue",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        420,
+        368
+      ]
+    },
+    {
+      "from": "redis",
+      "to": "planner",
+      "label": "blpop jevis:agent_queue",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        380,
+        530
+      ]
+    },
+    {
+      "from": "planner",
+      "to": "llm",
+      "label": "单次 query → 动作 JSON",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        510,
+        632
+      ]
+    },
+    {
+      "from": "planner",
+      "to": "pg",
+      "label": "写入 device_commands",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        135,
+        548
+      ]
+    },
+    {
+      "from": "api",
+      "to": "executor",
+      "label": "下发 DeviceCommand",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        510,
+        240
+      ]
+    },
+    {
+      "from": "executor",
+      "to": "api",
+      "label": "上报观察与结果",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "right",
+      "labelAt": [
+        510,
+        322
+      ]
+    },
+    {
+      "from": "api",
+      "to": "adb",
+      "label": "prepare-display 触发",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        420,
+        170
+      ]
+    },
+    {
+      "from": "adb",
+      "to": "vdisplay",
+      "label": "am start --display N",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          1105,
+          112
+        ]
+      ],
+      "labelAt": [
+        850,
+        98
+      ]
+    },
+    {
+      "from": "executor",
+      "to": "a11y",
+      "label": "CLICK / SET_TEXT",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        810,
+        362
+      ]
+    },
+    {
+      "from": "a11y",
+      "to": "target",
+      "label": "无障碍节点树操作",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        960,
+        410
+      ]
+    },
+    {
+      "from": "vdisplay",
+      "to": "target",
+      "label": "隔离窗口承载",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1105,
+        362
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "隔离保证",
+      "items": [
+        "目标 App 只启动在 scrcpy 虚拟显示（Display N > 0）",
+        "执行器校验 displayId 与 profileUserId，绝不回退主屏",
+        "白名单仅 8 个目标 App，越界直接拒绝"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "人工闸门",
+      "items": [
+        "confirmation_policy = BEFORE_EXTERNAL_ACTION",
+        "对外副作用必须先生成审批，approve 后才执行",
+        "拒绝或取消立即终止，执行器停止接受新动作"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "已知薄弱点",
+      "items": [
+        "scrcpy 与后端进程无健康自检，任一消失任务会静默卡住",
+        "规划器可能因模型返回非标准 JSON 停在 NEEDS_REVIEW",
+        "同任务发送去重已实现，需重装 App 后生效"
+      ]
+    }
+  ]
+}

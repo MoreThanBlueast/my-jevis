@@ -25,6 +25,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +55,12 @@ fun TaskListScreen(
     create: () -> Unit,
     open: (String) -> Unit,
 ) {
+    LaunchedEffect(Unit) {
+        while (true) {
+            refresh()
+            delay(3_000)
+        }
+    }
     var filter by remember { mutableStateOf("全部") }
     val visible = state.tasks.filter { task ->
         when (filter) {

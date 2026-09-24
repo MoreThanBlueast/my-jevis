@@ -17,6 +17,7 @@ import kotlinx.serialization.json.Json
 
 class TaskApi {
     private val client = HttpClient(Android) {
+        expectSuccess = true
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
@@ -36,6 +37,9 @@ class TaskApi {
 
     suspend fun cancelTask(id: String): AgentTask =
         client.post("${BuildConfig.API_BASE_URL}api/v1/tasks/$id/cancel").body()
+
+    suspend fun resumeTask(id: String): AgentTask =
+        client.post("${BuildConfig.API_BASE_URL}api/v1/tasks/$id/resume").body()
 
     suspend fun resolveApproval(taskId: String, approvalId: String, approve: Boolean): AgentTask =
         client.post(

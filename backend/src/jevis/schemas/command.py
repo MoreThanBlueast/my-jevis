@@ -52,6 +52,8 @@ class PlannedAction(BaseModel):
     @model_validator(mode="after")
     def validate_action(self) -> "PlannedAction":
         self.action_type = self.action_type.upper()
+        if self.action_type == "WAIT" and "duration_ms" in self.arguments:
+            self.arguments["milliseconds"] = self.arguments.pop("duration_ms")
         if self.action_type not in ALLOWED_ACTIONS:
             raise ValueError("模型返回了未授权动作")
         if "display_id" in self.arguments or "profile_user_id" in self.arguments:

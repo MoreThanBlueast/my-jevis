@@ -46,4 +46,4 @@ CLAUDE_AGENT_ENABLED=false uv run python -m jevis.services.agent_worker
 - 已完成：基础设施、通用任务 API/事件、设备领取协议、PRD 对齐的 Compose 页面、非零虚拟显示实机验证、Accessibility Executor、观察—规划—动作通道和 Claude Agent SDK 适配层。
 - 当前真机阻塞项：用户启用无障碍执行器；随后再配置 DeepSeek 凭据，验证任意自然语言任务与 QQ 邮箱最终发送。
 
-详细设计见 [产品方案](./AI手机并行任务助手产品方案.md)，设备协议见 [Device Gateway](./docs/device-gateway.md)。
+设备协议见 [Device Gateway](./docs/device-gateway.md)，系统架构见 [架构图](./docs/architecture/jevis-architecture.html)（在浏览器打开，可切换深浅色、缩放、搜索节点）。

@@ -6,6 +6,13 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 
 @Serializable
+data class TaskStatusUpdate(
+    @SerialName("task_id") val taskId: String,
+    val status: String,
+    val title: String,
+)
+
+@Serializable
 data class DeviceRegistration(
     @SerialName("device_id") val deviceId: String,
     val model: String,
@@ -29,6 +36,8 @@ data class ExecutorTask(
     @SerialName("idempotency_key") val idempotencyKey: String,
     @SerialName("required_display_id") val requiredDisplayId: Int,
     @SerialName("required_profile_user_id") val requiredProfileUserId: Int,
+    @SerialName("next_event_sequence") val nextEventSequence: Int,
+    val resumed: Boolean = false,
 )
 
 @Serializable

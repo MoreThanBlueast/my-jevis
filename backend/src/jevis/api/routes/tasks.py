@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jevis.api.deps import get_redis
 from jevis.db.session import get_session
 from jevis.models.approval import Approval, ApprovalStatus
-from jevis.models.command import DeviceCommand
+from jevis.models.command import CommandStatus, DeviceCommand
 from jevis.models.task import Task, TaskEvent, TaskStatus
 from jevis.schemas.command import PlannedAction
 from jevis.schemas.task import TaskCreate, TaskRead
@@ -70,6 +70,39 @@ async def cancel_task(
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
     return TaskRead.model_validate(await service.cancel(task))
+
+
+@router.post("/{task_id}/resume", response_model=TaskRead)
+async def resume_task(
+    task_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    redis: Redis | None = Depends(get_redis),
+) -> TaskRead:
+    task = await session.scalar(select(Task).where(Task.id == task_id).with_for_update())
+    if task is None:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if task.status != TaskStatus.NEEDS_REVIEW:
+        raise HTTPException(status_code=409, detail="仅可继续已暂停的任务")
+    commands = list((await session.scalars(
+        select(DeviceCommand).where(DeviceCommand.task_id == task_id)
+    )).all())
+    # Never replay an in-flight command: its external effect may be unknown.
+    if any(command.status in (CommandStatus.PENDING, CommandStatus.RUNNING)
+           for command in commands):
+        raise HTTPException(status_code=409, detail="存在未确认的动作，不能自动继续")
+    sequence = await session.scalar(select(func.coalesce(func.max(TaskEvent.sequence), 0))
+                                    .where(TaskEvent.task_id == task_id))
+    task.status = TaskStatus.QUEUED
+    task.error_code = None
+    task.error_message = None
+    session.add(TaskEvent(
+        task_id=task_id, sequence=int(sequence or 0) + 1,
+        event_type="TASK_RESUMED",
+        summary="用户从任务列表继续任务；重新观察，保留历史，不重放旧动作",
+        payload={},
+    ))
+    await session.commit()
+    return TaskRead.model_validate(await TaskService(session, redis).get(task_id))
 
 
 @router.post("/{task_id}/approvals/{approval_id}/approve", response_model=TaskRead)
